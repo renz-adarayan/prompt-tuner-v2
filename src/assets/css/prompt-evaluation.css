@@ -872,3 +872,746 @@
     border-radius: 2px;
     margin-top: 0.5rem;
 }
+
+/* Evaluation-specific Schema Selection Styles */
+.schema-selection {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 2rem;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.evaluation-card {
+    border: 2px solid rgba(139, 92, 246, 0.3) !important;
+    border-radius: 12px !important;
+    transition: all 0.3s ease !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+.evaluation-card:hover {
+    border-color: rgba(139, 92, 246, 0.6) !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 30px rgba(139, 92, 246, 0.2) !important;
+}
+
+.evaluation-card.active {
+    border-color: #8b5cf6 !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(248, 113, 113, 0.1)) !important;
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3) !important;
+}
+
+.evaluation-card.active::before {
+    content: '✓';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #8b5cf6;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+.schema-tile .card-title {
+    color: #5a4fcf !important;
+    font-weight: 600 !important;
+}
+
+.schema-tile .display-4 {
+    filter: drop-shadow(0 4px 8px rgba(139, 92, 246, 0.2));
+}
+
+/* Dynamic Forms Integration Styles */
+.dynamic-forms-container {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* Enhanced card styles for dynamic forms in evaluation context */
+.dynamic-forms-container .card {
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.dynamic-forms-container .card:hover {
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.15);
+}
+
+.dynamic-forms-container .card-title {
+    color: #5a4fcf;
+    font-weight: 600;
+}
+
+/* Enhanced form control styles for evaluation */
+.dynamic-forms-container .form-control,
+.dynamic-forms-container .form-select {
+    border: 2px solid rgba(139, 92, 246, 0.25);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.dynamic-forms-container .form-control:focus,
+.dynamic-forms-container .form-select:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
+}
+
+/* Plus button styling for array management */
+.btn-plus {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #8b5cf6;
+    color: #8b5cf6;
+    background: transparent;
+    transition: all 0.3s ease;
+    margin-left: 0.5rem;
+    line-height: 1;
+}
+
+.btn-plus:hover {
+    transform: scale(1.1);
+    background: #8b5cf6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+/* Array item styling */
+.array-item-card {
+    border-left: 3px solid #8b5cf6;
+    margin-left: 1rem;
+    background: rgba(255, 255, 255, 0.98);
+}
+
+/* Option card selection for union types */
+.option-card {
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 8px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.option-card:hover {
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
+}
+
+.option-card.selected {
+    border-color: #8b5cf6;
+    background-color: rgba(139, 92, 246, 0.1);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+}
+
+.option-icon {
+    font-size: 1.1rem;
+}
+
+.option-name {
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Union fields container styling */
+.union-fields-container {
+    transition: all 0.3s ease;
+}
+
+.union-schema-fields {
+    animation: fadeIn 0.3s ease-in-out;
+    border: 1px solid rgba(139, 92, 246, 0.2) !important;
+    background-color: rgba(139, 92, 246, 0.03) !important;
+}
+
+/* Enhanced button styling for evaluation context */
+.dynamic-forms-container .btn-primary {
+    background: linear-gradient(45deg, #8B5CF6, #F87171);
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.dynamic-forms-container .btn-primary:hover {
+    background: linear-gradient(45deg, #7C3AED, #EF4444);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(139, 92, 246, 0.4);
+}
+
+.dynamic-forms-container .btn-danger {
+    background: #EF4444;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.dynamic-forms-container .btn-danger:hover {
+    background: #DC2626;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+}
+
+/* Form labels in evaluation context */
+.dynamic-forms-container .form-label {
+    color: #5a4fcf;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Subsection headers for nested forms */
+.dynamic-forms-container .subsection-header {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(248, 113, 113, 0.1));
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    color: #5a4fcf;
+    margin-bottom: 1rem;
+    border-left: 4px solid #8b5cf6;
+}
+
+/* Action buttons styling */
+.dynamic-forms-container .action-buttons {
+    padding-top: 1rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+    margin-top: 1rem;
+    text-align: right;
+}
+
+/* Toggle Button Styles */
+.toggle-button {
+    background: none;
+    border: none;
+    color: #8b5cf6;
+    font-size: 1.2rem;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    margin-left: 0.5rem;
+    min-width: 28px;
+    height: 28px;
+}
+
+.toggle-button:hover {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7C3AED;
+    transform: scale(1.1);
+}
+
+.toggle-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+}
+
+.toggle-button.collapsed {
+    transform: rotate(-90deg);
+}
+
+.toggle-button:hover.collapsed {
+    transform: rotate(-90deg) scale(1.1);
+}
+
+/* Section Headers with Toggle */
+.section-header-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.5rem 0;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.section-header-toggle:hover {
+    background: rgba(139, 92, 246, 0.05);
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.section-header-toggle .header-title {
+    flex-grow: 1;
+    margin: 0;
+    font-weight: 600;
+    color: #5a4fcf;
+}
+
+.section-header-toggle .toggle-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Collapsible Content */
+.collapsible-content {
+    overflow: hidden;
+    transition: all 0.3s ease;
+    opacity: 1;
+    max-height: none;
+}
+
+.collapsible-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Array Item Toggle Styling */
+.array-item-header {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(248, 113, 113, 0.08));
+    border-radius: 8px 8px 0 0;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    margin: -1.5rem -1.5rem 1rem -1.5rem;
+}
+
+.array-item-header .subsection-header {
+    background: none;
+    padding: 0;
+    margin: 0;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.1rem;
+}
+
+.array-item-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.array-item-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Nested Object Field Toggle */
+.nested-object-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(139, 92, 246, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #8b5cf6;
+}
+
+.nested-object-header .form-label {
+    margin: 0;
+    font-weight: 600;
+    color: #5a4fcf;
+}
+
+.nested-object-fields {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.nested-object-fields.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Union Fields Toggle */
+.union-fields-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0.75rem 0 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    background: rgba(139, 92, 246, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #8b5cf6;
+}
+
+.union-fields-header .union-label {
+    margin: 0;
+    font-weight: 600;
+    color: #5a4fcf;
+    font-size: 0.95rem;
+}
+
+.union-schema-fields {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.union-schema-fields.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border: none !important;
+    background: none !important;
+}
+
+/* Nested Array Toggle */
+.nested-array-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 1rem 0 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    background: rgba(139, 92, 246, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #8b5cf6;
+    border-top: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.nested-array-header .array-title {
+    margin: 0;
+    font-weight: 600;
+    color: #5a4fcf;
+    font-size: 1rem;
+}
+
+.nested-array-content {
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.nested-array-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Toggle Animation Enhancements */
+@keyframes toggleExpand {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 500px;
+        opacity: 1;
+    }
+}
+
+@keyframes toggleCollapse {
+    from {
+        max-height: 500px;
+        opacity: 1;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+    }
+}
+
+.expanding {
+    animation: toggleExpand 0.3s ease;
+}
+
+.collapsing {
+    animation: toggleCollapse 0.3s ease;
+}
+
+/* Toggle State Indicators */
+.toggle-indicator {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-left: 0.5rem;
+    font-weight: normal;
+}
+
+.collapsed .toggle-indicator::after {
+    content: " (collapsed)";
+}
+
+.expanded .toggle-indicator::after {
+    content: " (expanded)";
+}
+
+/* Bulk Toggle Controls */
+.bulk-toggle-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.bulk-toggle-btn {
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #8b5cf6;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.bulk-toggle-btn:hover {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+}
+
+/* Responsive Toggle Styles */
+@media (max-width: 768px) {
+    .section-header-toggle {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .toggle-button {
+        font-size: 1rem;
+        min-width: 24px;
+        height: 24px;
+    }
+    
+    .array-item-header,
+    .nested-object-header,
+    .union-fields-header,
+    .nested-array-header {
+        padding: 0.5rem;
+    }
+    
+    .bulk-toggle-controls {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* JSON Display Section Styles */
+.json-display-section {
+    margin: 1.5rem 0;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.json-display-section .card {
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.json-display-section .card:hover {
+    border-color: rgba(139, 92, 246, 0.5);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.15);
+}
+
+.json-display-section .card-header {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(248, 113, 113, 0.05));
+    border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+    border-radius: 12px 12px 0 0;
+    padding: 0.75rem 1.25rem;
+}
+
+.json-display-section .card-header h6 {
+    font-weight: 600;
+    color: #5a4fcf;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.json-display-section .card-body {
+    padding: 0;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 0 0 12px 12px;
+}
+
+.json-content {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #1e293b;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    padding: 1.5rem;
+    margin: 0;
+    border: none;
+    border-radius: 0 0 10px 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre;
+    word-wrap: break-word;
+    position: relative;
+}
+
+.json-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.json-content::-webkit-scrollbar-track {
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 4px;
+}
+
+.json-content::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.json-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(139, 92, 246, 0.5);
+}
+
+/* JSON syntax highlighting using pure CSS */
+.json-content {
+    /* JSON keys */
+    background-image: 
+        linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* Copy button styling */
+.json-display-section .btn-outline-primary {
+    border: 1px solid #8b5cf6;
+    color: #8b5cf6;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.json-display-section .btn-outline-primary:hover {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
+}
+
+.json-display-section .btn-outline-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(139, 92, 246, 0.25);
+    border-color: #8b5cf6;
+}
+
+/* Show/Hide JSON Button Styling */
+.btn-outline-secondary {
+    border: 2px solid #6c757d;
+    color: #6c757d;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+
+.btn-outline-secondary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
+}
+
+/* Empty state styling */
+.json-content:empty::before {
+    content: "No form data available. Fill out the form above to see JSON data here.";
+    color: #6b7280;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* Responsive adjustments for JSON display */
+@media (max-width: 768px) {
+    .json-content {
+        font-size: 0.75rem;
+        padding: 1rem;
+        max-height: 300px;
+    }
+    
+    .json-display-section .card-header {
+        padding: 0.6rem 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .json-display-section .btn-outline-primary {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.7rem;
+        align-self: flex-end;
+    }
+    
+    .btn-outline-secondary {
+        padding: 0.6rem 1.25rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation for JSON content updates */
+@keyframes jsonUpdate {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.01);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.json-content.updating {
+    animation: jsonUpdate 0.5s ease-in-out;
+}

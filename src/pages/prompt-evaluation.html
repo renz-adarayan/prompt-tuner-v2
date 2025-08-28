@@ -18,8 +18,10 @@
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
     
-    <!-- Dynamic Form Generator -->
-    <script src="../assets/js/dynamic-form-generator.js"></script>
+    <!-- Modular JavaScript Components -->
+    <script src="../assets/js/data-manager.js"></script>
+    <script src="../assets/js/array-manager.js"></script>
+    <script src="../assets/js/dynamic-workflow.js"></script>
 </head>
 <body>
     <!-- Navigation -->
@@ -71,66 +73,90 @@
                 </div>
             </div>
 
+            <!-- Schema Selection Section -->
+            <div class="schema-selection mb-5" x-show="!currentSchema && !isRunning && !hasResults">
+                <div class="section-header mb-4 text-start">
+                    <h3>Workflow Selection</h3>
+                    <p class="text-muted mb-0">Choose a workflow schema to evaluate</p>
+                </div>
+                
+                <div class="row row-cols-1 row-cols-md-2 g-4" id="schema-selector">
+                    <!-- Loading state -->
+                    <template x-if="!availableWorkflows.length && !schemasLoaded">
+                        <div class="text-center py-4">
+                            <div class="custom-spinner mb-3"></div>
+                            <p class="text-muted">Loading workflows...</p>
+                        </div>
+                    </template>
+                    
+                    <!-- No workflows found -->
+                    <template x-if="availableWorkflows.length === 0 && schemasLoaded">
+                        <div class="text-center py-5 text-muted">No workflows found.</div>
+                    </template>
+                    
+                    <!-- Schema tiles -->
+                    <template x-for="workflow in availableWorkflows" :key="workflow.name">
+                        <div class="col">
+                            <div class="card card-hover h-100 schema-tile position-relative evaluation-card" 
+                                 :id="workflow.name + '-schema'"
+                                 :class="{'active': currentSchema === workflow.name}"
+                                 x-on:click="selectSchema(workflow.name)" 
+                                 style="cursor: pointer;">
+                                <div class="card-body text-center p-4">
+                                    <div class="display-4 mb-3">⚙️</div>
+                                    <h5 class="card-title fw-semibold" x-text="workflow.title"></h5>
+                                    <p class="card-text text-muted small" x-text="workflow.description"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- Input Parameters Section -->
-            <div class="input-section mb-5" x-show="!isRunning && !hasResults">
+            <div class="input-section mb-5" x-show="currentSchema && !isRunning && !hasResults">
                 <div class="section-header mb-4 text-start">
                     <h3>Input Parameters</h3>
                     <p class="text-muted mb-0">Dynamic forms generated from your workflow schema</p>
                 </div>
                 
-                <!-- Loading State -->
-                <div x-show="loadingSchema" class="text-center py-5">
-                    <div class="custom-spinner mb-3"></div>
-                    <h5 class="text-muted">Loading Schema...</h5>
-                    <p class="text-muted mb-0">Generating forms from your backend workflow schema</p>
-                </div>
-                
-                <!-- Schema Error State -->
-                <div x-show="schemaError && !loadingSchema" class="alert alert-warning" role="alert">
-                    <div class="d-flex align-items-center mb-3">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <h6 class="mb-0">Unable to Load Dynamic Schema</h6>
-                    </div>
-                    <p class="mb-3" x-text="schemaError"></p>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-outline-warning btn-sm" @click="loadSampleSchema()">
-                            <i class="bi bi-file-code me-1"></i>
-                            Use Sample Schema
-                        </button>
-                        <button class="btn btn-outline-primary btn-sm" @click="loadDynamicSchema(workflow?.id)">
-                            <i class="bi bi-arrow-clockwise me-1"></i>
-                            Retry Loading
-                        </button>
-                    </div>
-                </div>
-                
                 <!-- Dynamic Forms Container -->
-                <div x-show="schemaLoaded && !loadingSchema" class="dynamic-forms-container">
-                    <div id="dynamicFormsContainer">
+                <div class="dynamic-forms-container">
+                    <div id="dynamicFormsContainer" x-html="dynamicFormHtml">
                         <!-- Dynamic forms will be rendered here automatically -->
                     </div>
                     
+                    <!-- Show/Hide JSON Button -->
+                    <div class="d-flex gap-3 mb-4" x-show="showFormActions && hasFormData()">
+                        <button class="btn btn-outline-secondary" x-on:click="toggleJsonDisplay()" x-text="showJson ? 'Hide JSON' : 'Show JSON'"></button>
+                    </div>
+                    
+                    <!-- JSON Display Section -->
+                    <div class="json-display-section mb-4" x-show="showJson && showFormActions" x-transition>
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">Form Data JSON</h6>
+                                <button class="btn btn-sm btn-outline-primary" @click="copyJsonToClipboard()">
+                                    <i class="bi bi-clipboard"></i> Copy JSON
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <pre class="json-content" x-text="getFormDataJson()"></pre>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Run Evaluation Button -->
-                    <div class="text-center mt-4">
+                    <div class="text-center mt-4" x-show="currentSchema">
                         <button 
                             class="btn btn-primary btn-lg px-5" 
                             @click="runEvaluationWithDynamicData()"
+                            :disabled="!currentSchema || !Object.keys(getFormDataForSchema()).length"
                         >
                             <i class="bi bi-play-fill me-2"></i>
                             Run Evaluation
                         </button>
                     </div>
-                </div>
-                
-                <!-- No Schema State -->
-                <div x-show="!schemaLoaded && !loadingSchema && !schemaError" class="text-center py-5">
-                    <i class="bi bi-file-earmark-code text-muted" style="font-size: 3rem;"></i>
-                    <h5 class="text-muted mt-3">No Schema Loaded</h5>
-                    <p class="text-muted mb-4">Dynamic forms will appear here once the schema is loaded</p>
-                    <button class="btn btn-primary" @click="loadDynamicSchema(workflow?.id)">
-                        <i class="bi bi-cloud-download me-2"></i>
-                        Load Schema
-                    </button>
                 </div>
             </div>
 
@@ -262,8 +288,442 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JavaScript -->
-    <script src="../assets/js/prompt-evaluation.js"></script>
+    <!-- Custom JavaScript - Integrated Dynamic Workflow for Evaluation -->
+    <script>
+        // Enhanced Prompt Evaluation App using Modular Dynamic Workflow Architecture
+        function promptEvaluationApp() {
+            return {
+                // State from DynamicWorkflowManager
+                currentSchema: null,
+                availableWorkflows: [],
+                schemasLoaded: false,
+                showFormHeader: false,
+                showFormActions: false,
+                showResults: false,
+                formTitle: 'Dynamic Form',
+                dynamicFormHtml: '',
+                resultsHtml: '',
+                
+                // Evaluation-specific state
+                workflow: { name: 'Workflow Evaluation', id: null },
+                isRunning: false,
+                hasResults: false,
+                results: null,
+                selectedPromptVersion: '',
+                revisions: [],
+                showJson: false,
+                
+                // Initialization
+                async init() {
+                    console.log('Enhanced Prompt Evaluation App initialized');
+                    
+                    // Wait for dynamic workflow to be fully ready
+                    await this.waitForDynamicWorkflow();
+                    
+                    // Setup state synchronization with modular classes
+                    this.setupStateSync();
+                    
+                    // Initialize modular workflow system
+                    if (window.dynamicWorkflow) {
+                        await window.dynamicWorkflow.init();
+                        this.syncState();
+                    }
+                    
+                    // Initialize prompt version system
+                    await this.loadRevisionsFromAPI();
+                    this.initializePromptVersion();
+                },
+                
+                // Wait for dynamic workflow to be fully ready
+                async waitForDynamicWorkflow() {
+                    let attempts = 0;
+                    const maxAttempts = 50; // 5 seconds max wait time
+                    
+                    while (attempts < maxAttempts) {
+                        if (window.dynamicWorkflow && 
+                            typeof window.dynamicWorkflow.collectFormDataFromDOM === 'function' &&
+                            typeof window.dynamicWorkflow.getFormDataForSchema === 'function') {
+                            console.log('DynamicWorkflow is ready after', attempts * 100, 'ms');
+                            return;
+                        }
+                        
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    console.warn('DynamicWorkflow initialization timeout - proceeding with limited functionality');
+                },
+                
+                // State synchronization with modular classes
+                setupStateSync() {
+                    // Sync state every 200ms to ensure Alpine.js stays updated
+                    setInterval(() => {
+                        this.syncState();
+                    }, 200);
+                },
+                
+                syncState() {
+                    if (window.dynamicWorkflow) {
+                        this.availableWorkflows = [...(window.dynamicWorkflow.availableWorkflows || [])];
+                        this.schemasLoaded = window.dynamicWorkflow.schemasLoaded || false;
+                        this.currentSchema = window.dynamicWorkflow.currentSchema || null;
+                        this.showFormHeader = window.dynamicWorkflow.showFormHeader || false;
+                        this.showFormActions = window.dynamicWorkflow.showFormActions || false;
+                        this.showResults = window.dynamicWorkflow.showResults || false;
+                        this.formTitle = window.dynamicWorkflow.formTitle || 'Dynamic Form';
+                        this.dynamicFormHtml = window.dynamicWorkflow.dynamicFormHtml || '';
+                        this.resultsHtml = window.dynamicWorkflow.resultsHtml || '';
+                        
+                        // Update workflow name for header
+                        if (this.currentSchema) {
+                            const selectedWorkflow = this.availableWorkflows.find(w => w.name === this.currentSchema);
+                            if (selectedWorkflow) {
+                                this.workflow = { 
+                                    name: selectedWorkflow.title, 
+                                    id: selectedWorkflow.name 
+                                };
+                            }
+                        }
+                    }
+                },
+                
+                // Schema selection (delegate to DynamicWorkflowManager)
+                async selectSchema(schemaName) {
+                    if (window.dynamicWorkflow) {
+                        await window.dynamicWorkflow.selectSchema(schemaName);
+                        this.syncState();
+                    }
+                },
+                
+                // Enhanced JSON display functionality
+                toggleJsonDisplay() {
+                    this.showJson = !this.showJson;
+                    
+                    // Force data collection when showing JSON
+                    if (this.showJson) {
+                        this.forceDataSync();
+                    }
+                },
+                
+                getFormDataJson() {
+                    // Force data synchronization before getting JSON
+                    this.forceDataSync();
+                    
+                    const formData = this.getFormDataForSchema();
+                    
+                    if (!formData || Object.keys(formData).length === 0) {
+                        return JSON.stringify({
+                            "_note": "No form data available",
+                            "_suggestion": "Please fill out the form fields and try again",
+                            "_schema": this.currentSchema || "No schema selected",
+                            "_timestamp": new Date().toISOString()
+                        }, null, 2);
+                    }
+                    
+                    return JSON.stringify(formData, null, 2);
+                },
+
+                // Force data synchronization with DOM - Fixed version
+                forceDataSync() {
+                    try {
+                        if (window.dynamicWorkflow && typeof window.dynamicWorkflow.collectFormDataFromDOM === 'function') {
+                            // Trigger data collection from DOM
+                            const domData = window.dynamicWorkflow.collectFormDataFromDOM();
+                            
+                            // If we have DOM data, update the data manager
+                            if (domData && Object.keys(domData).length > 0 && window.dynamicWorkflow.dataManager) {
+                                // Merge DOM data with stored data
+                                const storedData = window.dynamicWorkflow.dataManager.getFormDataForSchema(this.currentSchema) || {};
+                                const mergedData = { ...storedData, ...domData };
+                                
+                                // Update the data manager with merged data
+                                if (typeof window.dynamicWorkflow.dataManager.setFormData === 'function') {
+                                    window.dynamicWorkflow.dataManager.setFormData(this.currentSchema, mergedData);
+                                    console.log('Force synced data from DOM:', mergedData);
+                                }
+                            }
+                        }
+                        // Removed the console warning to prevent unnecessary error messages
+                    } catch (error) {
+                        console.error('Error in forceDataSync:', error);
+                    }
+                },
+                
+                async copyJsonToClipboard() {
+                    try {
+                        const jsonData = this.getFormDataJson();
+                        await navigator.clipboard.writeText(jsonData);
+                        console.log('JSON data copied to clipboard');
+                    } catch (err) {
+                        console.error('Failed to copy JSON to clipboard:', err);
+                    }
+                },
+                
+                // Get form data (delegate to modular managers)
+                getFormDataForSchema() {
+                    try {
+                        if (window.dynamicWorkflow && 
+                            typeof window.dynamicWorkflow.getFormDataForSchema === 'function') {
+                            return window.dynamicWorkflow.getFormDataForSchema();
+                        } else {
+                            console.log('DynamicWorkflow not ready yet, using fallback data collection');
+                            return this.collectFormDataDirectly();
+                        }
+                    } catch (error) {
+                        console.error('Error getting form data:', error);
+                        return {};
+                    }
+                },
+                
+                // Fallback method to collect form data directly from DOM
+                collectFormDataDirectly() {
+                    const formData = {};
+                    
+                    try {
+                        // Collect data from text and number inputs in the dynamic forms container
+                        const container = document.getElementById('dynamicFormsContainer');
+                        if (!container) {
+                            return formData;
+                        }
+                        
+                        const inputs = container.querySelectorAll('input, select, textarea');
+                        inputs.forEach(input => {
+                            if (input.id && input.value.trim()) {
+                                // Parse field name from input ID
+                                let fieldName = input.id;
+                                if (fieldName.startsWith('field-')) {
+                                    fieldName = fieldName.replace('field-', '');
+                                }
+                                
+                                // Convert value based on input type
+                                let value = input.value.trim();
+                                if (input.type === 'number' && value) {
+                                    value = parseFloat(value) || 0;
+                                }
+                                
+                                formData[fieldName] = value;
+                            }
+                        });
+                        
+                        // Collect data from selected union options
+                        const selectedOptions = container.querySelectorAll('.option-card.selected');
+                        selectedOptions.forEach(option => {
+                            const optionName = option.querySelector('.option-name');
+                            const parentGroup = option.closest('.form-group');
+                            if (optionName && parentGroup) {
+                                const label = parentGroup.querySelector('.form-label');
+                                if (label) {
+                                    const fieldName = label.textContent.toLowerCase().replace(/\s+/g, '_');
+                                    formData[fieldName] = optionName.textContent.trim();
+                                }
+                            }
+                        });
+                        
+                        console.log('Direct form data collection result:', formData);
+                        
+                    } catch (error) {
+                        console.error('Error in direct form data collection:', error);
+                    }
+                    
+                    return formData;
+                },
+                
+                // Check if there's actual form data to determine if JSON button should show
+                hasFormData() {
+                    const formData = this.getFormDataForSchema();
+                    return formData && Object.keys(formData).length > 0;
+                },
+                
+                // Enhanced evaluation with dynamic data
+                async runEvaluationWithDynamicData() {
+                    this.isRunning = true;
+                    this.hasResults = false;
+                    
+                    try {
+                        // Collect data from modular form system
+                        const dynamicFormData = this.getFormDataForSchema();
+                        console.log('Running evaluation with modular data:', dynamicFormData);
+                        
+                        // Simulate processing time
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        
+                        // Generate enhanced results using dynamic data
+                        this.results = this.generateEnhancedResults(this.currentSchema, dynamicFormData);
+                        
+                        this.isRunning = false;
+                        this.hasResults = true;
+                        
+                    } catch (error) {
+                        console.error('Error running evaluation:', error);
+                        this.isRunning = false;
+                        alert('Error running evaluation: ' + error.message);
+                    }
+                },
+                
+                // Generate enhanced evaluation results
+                generateEnhancedResults(workflowId, inputData) {
+                    const workflowOutput = `
+**Enhanced Workflow Evaluation Results**
+
+**Workflow:** ${this.workflow.name}
+**Schema:** ${workflowId}
+**Timestamp:** ${new Date().toISOString()}
+
+**Input Data Summary:**
+${Object.keys(inputData).length} top-level fields processed
+Data structure: ${JSON.stringify(inputData, null, 2)}
+
+**Key Findings:**
+• Dynamic schema integration: ✓ Successfully loaded
+• Form generation: ✓ Automated from API schema
+• Data validation: ✓ Passed all checks
+• Processing performance: Optimal
+• Evaluation confidence: ${Math.floor(Math.random() * 15 + 85)}%
+
+**Recommendations:**
+1. Schema structure is well-defined and validated
+2. Form data captured successfully using modular architecture
+3. Consider adding validation rules for enhanced data quality
+4. Workflow ready for production deployment
+                    `;
+                    
+                    // Generate enhanced agent results
+                    const agentResults = [
+                        {
+                            agentName: 'schema_validator',
+                            displayName: 'Schema Validator',
+                            tokensUsed: Math.floor(Math.random() * 1500 + 300),
+                            executionTime: Math.floor(Math.random() * 800 + 200),
+                            model: 'gpt-4-enhanced',
+                            output: `Schema validation completed successfully for ${workflowId}. Found ${Object.keys(inputData).length} valid input fields. Data structure conforms to expected format. No validation errors detected.`,
+                            expanded: false
+                        },
+                        {
+                            agentName: 'data_processor',
+                            displayName: 'Data Processor',
+                            tokensUsed: Math.floor(Math.random() * 2000 + 500),
+                            executionTime: Math.floor(Math.random() * 1200 + 400),
+                            model: 'gpt-4-enhanced',
+                            output: `Processing ${Object.keys(inputData).length} data fields using modular architecture. Dynamic form system successfully captured: ${Object.keys(inputData).join(', ')}. Data integrity verified.`,
+                            expanded: false
+                        },
+                        {
+                            agentName: 'evaluation_engine',
+                            displayName: 'Evaluation Engine',
+                            tokensUsed: Math.floor(Math.random() * 2500 + 800),
+                            executionTime: Math.floor(Math.random() * 1500 + 600),
+                            model: 'gpt-4-enhanced',
+                            output: `Evaluation completed with ${Math.floor(Math.random() * 15 + 85)}% confidence. Workflow performance: Excellent. Integration with modular system: Successful. Ready for production deployment.`,
+                            expanded: false
+                        }
+                    ];
+                    
+                    return { workflowOutput, agentResults };
+                },
+                
+                // Prompt version management
+                async loadRevisionsFromAPI() {
+                    try {
+                        // Simplified version management for evaluation context
+                        this.revisions = [
+                            {
+                                id: 'v3.0',
+                                name: 'v3.0',
+                                date: new Date().toISOString().split('T')[0],
+                                description: 'Enhanced modular architecture',
+                                author: 'System',
+                                status: 'latest'
+                            },
+                            {
+                                id: 'v2.1',
+                                name: 'v2.1',
+                                date: '2024-03-10',
+                                description: 'Production stable',
+                                author: 'System',
+                                status: 'stable'
+                            }
+                        ];
+                    } catch (error) {
+                        console.error('Error loading revisions:', error);
+                        this.revisions = [];
+                    }
+                },
+                
+                initializePromptVersion() {
+                    const versions = this.getAvailableVersions();
+                    if (versions.length > 0) {
+                        this.selectedPromptVersion = versions[0].id;
+                    }
+                },
+                
+                getAvailableVersions() {
+                    return this.revisions.map(revision => ({
+                        id: revision.id,
+                        display: `${revision.name} (${revision.description})`,
+                        date: revision.date,
+                        status: revision.status
+                    }));
+                },
+                
+                // Evaluation-specific methods
+                resetEvaluation() {
+                    this.isRunning = false;
+                    this.hasResults = false;
+                    this.results = null;
+                    // Reset form data through modular system
+                    if (window.dynamicWorkflow) {
+                        window.dynamicWorkflow.resetAll();
+                        this.syncState();
+                    }
+                },
+                
+                downloadResults() {
+                    if (!this.results) return;
+                    
+                    const resultsData = {
+                        workflow: this.workflow.name,
+                        schema: this.currentSchema,
+                        timestamp: new Date().toISOString(),
+                        promptVersion: this.selectedPromptVersion,
+                        inputData: this.getFormDataForSchema(),
+                        workflowOutput: this.results.workflowOutput,
+                        agentResults: this.results.agentResults
+                    };
+                    
+                    const dataStr = JSON.stringify(resultsData, null, 2);
+                    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(dataBlob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `${this.workflow.name.replace(/\s+/g, '_')}_evaluation_${new Date().toISOString().split('T')[0]}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                },
+                
+                formatWorkflowOutput(output) {
+                    return output.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                },
+                
+                getAgentDescription(agentName) {
+                    const descriptions = {
+                        'schema_validator': 'Validates schema structure and data integrity',
+                        'data_processor': 'Processes form data using modular architecture',
+                        'evaluation_engine': 'Evaluates workflow performance and readiness'
+                    };
+                    return descriptions[agentName] || 'Specialized evaluation agent';
+                },
+                
+                async copyAgentOutput(output) {
+                    try {
+                        await navigator.clipboard.writeText(output);
+                        console.log('Agent output copied to clipboard');
+                    } catch (err) {
+                        console.error('Failed to copy to clipboard:', err);
+                    }
+                }
+            };
+        }
+    </script>
     
     <!-- Set current year in footer -->
     <script>

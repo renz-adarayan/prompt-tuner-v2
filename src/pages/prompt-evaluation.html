@@ -70,11 +70,17 @@
                             </small>
                         </div>
                     </div>
+                    
+                    <!-- Debug info (remove this in production) -->
+                    <div class="mt-2 text-center" x-show="currentSchema" style="font-size: 0.8em; color: #666;">
+                        Debug: Schema=<span x-text="currentSchema || 'None'"></span>, 
+                        FormData=<span x-text="formDataExists ? 'Yes' : 'No'"></span>
+                    </div>
                 </div>
             </div>
 
             <!-- Schema Selection Section -->
-            <div class="schema-selection mb-5" x-show="!currentSchema && !isRunning && !hasResults">
+            <div class="schema-selection mb-5" x-show="!workflowQueryParam && !currentSchema && !isRunning && !hasResults">
                 <div class="section-header mb-4 text-start">
                     <h3>Workflow Selection</h3>
                     <p class="text-muted mb-0">Choose a workflow schema to evaluate</p>
@@ -114,7 +120,7 @@
             </div>
 
             <!-- Input Parameters Section -->
-            <div class="input-section mb-5" x-show="currentSchema && !isRunning && !hasResults">
+            <div class="input-section mb-5" x-show="(workflowQueryParam || currentSchema) && !isRunning && !hasResults">
                 <div class="section-header mb-4 text-start">
                     <h3>Input Parameters</h3>
                     <p class="text-muted mb-0">Dynamic forms generated from your workflow schema</p>
@@ -126,35 +132,34 @@
                         <!-- Dynamic forms will be rendered here automatically -->
                     </div>
                     
-                    <!-- Show/Hide JSON Button -->
-                    <div class="d-flex gap-3 mb-4" x-show="showFormActions && hasFormData()">
-                        <button class="btn btn-outline-secondary" x-on:click="toggleJsonDisplay()" x-text="showJson ? 'Hide JSON' : 'Show JSON'"></button>
-                    </div>
-                    
-                    <!-- JSON Display Section -->
-                    <div class="json-display-section mb-4" x-show="showJson && showFormActions" x-transition>
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">Form Data JSON</h6>
-                                <button class="btn btn-sm btn-outline-primary" @click="copyJsonToClipboard()">
-                                    <i class="bi bi-clipboard"></i> Copy JSON
-                                </button>
-                            </div>
-                            <div class="card-body">
-                                <pre class="json-content" x-text="getFormDataJson()"></pre>
-                            </div>
-                        </div>
-                    </div>
                     
                     <!-- Run Evaluation Button -->
                     <div class="text-center mt-4" x-show="currentSchema">
                         <button 
-                            class="btn btn-primary btn-lg px-5" 
+                            class="btn btn-primary btn-lg px-5 me-3" 
                             @click="runEvaluationWithDynamicData()"
-                            :disabled="!currentSchema || !Object.keys(getFormDataForSchema()).length"
+                            :disabled="!currentSchema || !formDataExists"
                         >
                             <i class="bi bi-play-fill me-2"></i>
                             Run Evaluation
+                        </button>
+                        <button 
+                            class="btn btn-outline-success btn-lg px-4" 
+                            @click="downloadFormDataJson()"
+                            :disabled="!currentSchema || !formDataExists"
+                            title="Download form data as JSON file"
+                        >
+                            <i class="bi bi-download me-2"></i>
+                            Download JSON
+                        </button>
+                        <button 
+                            class="btn btn-outline-info btn-lg px-4" 
+                            @click="logFormDataToConsole()"
+                            :disabled="!currentSchema || !formDataExists"
+                            title="Log form data to browser console"
+                        >
+                            <i class="bi bi-terminal me-2"></i>
+                            Log JSON to Console
                         </button>
                     </div>
                 </div>
@@ -311,27 +316,38 @@
                 results: null,
                 selectedPromptVersion: '',
                 revisions: [],
-                showJson: false,
+                workflowQueryParam: null,
                 
                 // Initialization
                 async init() {
                     console.log('Enhanced Prompt Evaluation App initialized');
-                    
-                    // Wait for dynamic workflow to be fully ready
+                    const params = new URLSearchParams(window.location.search);
+                    this.workflowQueryParam = params.get('workflow');
                     await this.waitForDynamicWorkflow();
-                    
-                    // Setup state synchronization with modular classes
                     this.setupStateSync();
-                    
-                    // Initialize modular workflow system
                     if (window.dynamicWorkflow) {
                         await window.dynamicWorkflow.init();
                         this.syncState();
+                        // Only auto-select if not already selected
+                        if (this.workflowQueryParam && this.currentSchema !== this.workflowQueryParam) {
+                            const trySelect = async () => {
+                                if (window.dynamicWorkflow.availableWorkflows?.length) {
+                                    if (window.dynamicWorkflow.currentSchema !== this.workflowQueryParam) {
+                                        await window.dynamicWorkflow.selectSchema(this.workflowQueryParam);
+                                        this.syncState();
+                                    }
+                                } else {
+                                    setTimeout(trySelect, 100);
+                                }
+                            };
+                            trySelect();
+                        }
                     }
-                    
-                    // Initialize prompt version system
                     await this.loadRevisionsFromAPI();
                     this.initializePromptVersion();
+                    
+                    // Initialize form data tracking for reactive button states
+                    this.initFormDataTracking();
                 },
                 
                 // Wait for dynamic workflow to be fully ready
@@ -395,34 +411,55 @@
                     }
                 },
                 
-                // Enhanced JSON display functionality
-                toggleJsonDisplay() {
-                    this.showJson = !this.showJson;
-                    
-                    // Force data collection when showing JSON
-                    if (this.showJson) {
-                        this.forceDataSync();
-                    }
+                // Generate compact ISO 8601 UTC identifier
+                generateCompactIdentifier() {
+                    const now = new Date();
+                    const isoString = now.toISOString();
+                    // Convert 2025-08-28T17:30:45.123Z to test-2025-08-28T17-30-45Z
+                    const compactISO = isoString.split('.')[0] + 'Z'; // Remove milliseconds
+                    const compactFormat = compactISO.replace(/:/g, '-'); // Replace colons with dashes
+                    return `test-${compactFormat}`;
                 },
-                
-                getFormDataJson() {
-                    // Force data synchronization before getting JSON
+
+                // Create new JSON structure format
+                createFormattedJsonStructure(formData) {
+                    return {
+                        user_prompt: {
+                            revision_id: this.selectedPromptVersion || 'v1.0',
+                            identifier: this.generateCompactIdentifier(),
+                            stores: [formData] // stores as array containing the form data as individual store objects
+                        },
+                        conversation_flow: this.currentSchema || 'unknown-workflow'
+                    };
+                },
+
+                // Console logging functionality (replaces JSON display)
+                logFormDataToConsole() {
+                    // Force data collection before logging
                     this.forceDataSync();
                     
                     const formData = this.getFormDataForSchema();
                     
                     if (!formData || Object.keys(formData).length === 0) {
-                        return JSON.stringify({
+                        console.warn('📝 Form Data Logging - No data available');
+                        console.log({
                             "_note": "No form data available",
                             "_suggestion": "Please fill out the form fields and try again",
                             "_schema": this.currentSchema || "No schema selected",
                             "_timestamp": new Date().toISOString()
-                        }, null, 2);
+                        });
+                        return;
                     }
                     
-                    return JSON.stringify(formData, null, 2);
+                    // Create formatted data using the same structure as download
+                    const formattedData = this.createFormattedJsonStructure(formData);
+                    
+                    console.log('=== FORM DATA JSON ===');
+                    console.log('Formatted JSON structure:', formattedData);
+                    console.log('JSON formatted:', JSON.stringify(formattedData, null, 2));
+                    console.log('=== END FORM DATA ===');
                 },
-
+                
                 // Force data synchronization with DOM - Fixed version
                 forceDataSync() {
                     try {
@@ -449,59 +486,71 @@
                     }
                 },
                 
-                async copyJsonToClipboard() {
-                    try {
-                        const jsonData = this.getFormDataJson();
-                        await navigator.clipboard.writeText(jsonData);
-                        console.log('JSON data copied to clipboard');
-                    } catch (err) {
-                        console.error('Failed to copy JSON to clipboard:', err);
-                    }
-                },
-                
-                // Get form data (delegate to modular managers)
+                // Get form data (enhanced to prioritize fresh DOM data)
                 getFormDataForSchema() {
                     try {
+                        let formData = {};
+                        
+                        // Method 1: Get data from dynamic workflow system
                         if (window.dynamicWorkflow && 
                             typeof window.dynamicWorkflow.getFormDataForSchema === 'function') {
-                            return window.dynamicWorkflow.getFormDataForSchema();
-                        } else {
-                            console.log('DynamicWorkflow not ready yet, using fallback data collection');
-                            return this.collectFormDataDirectly();
+                            formData = window.dynamicWorkflow.getFormDataForSchema() || {};
                         }
+                        
+                        // Method 2: Always collect fresh data from DOM and merge
+                        const freshDomData = this.collectFormDataDirectly();
+                        if (freshDomData && Object.keys(freshDomData).length > 0) {
+                            formData = { ...formData, ...freshDomData };
+                            console.log('Merged stored and fresh DOM data:', formData);
+                        }
+                        
+                        // Method 3: Fallback if no data found
+                        if (Object.keys(formData).length === 0) {
+                            console.log('No data found, using comprehensive DOM scan');
+                            formData = this.collectFormDataDirectly();
+                        }
+                        
+                        return formData;
                     } catch (error) {
                         console.error('Error getting form data:', error);
-                        return {};
+                        return this.collectFormDataDirectly();
                     }
                 },
                 
-                // Fallback method to collect form data directly from DOM
+                // Enhanced fallback method to collect form data directly from DOM
                 collectFormDataDirectly() {
                     const formData = {};
                     
                     try {
-                        // Collect data from text and number inputs in the dynamic forms container
                         const container = document.getElementById('dynamicFormsContainer');
                         if (!container) {
+                            console.log('Dynamic forms container not found');
                             return formData;
                         }
                         
+                        // Collect data from all input types
                         const inputs = container.querySelectorAll('input, select, textarea');
                         inputs.forEach(input => {
-                            if (input.id && input.value.trim()) {
-                                // Parse field name from input ID
-                                let fieldName = input.id;
-                                if (fieldName.startsWith('field-')) {
-                                    fieldName = fieldName.replace('field-', '');
+                            if (input.id) {
+                                let fieldName = this.parseFieldNameFromInputId(input.id);
+                                let value = input.value;
+                                
+                                // Skip empty values unless it's a checkbox/radio that could be unchecked
+                                if (value.trim() === '' && input.type !== 'checkbox' && input.type !== 'radio') {
+                                    return;
                                 }
                                 
                                 // Convert value based on input type
-                                let value = input.value.trim();
-                                if (input.type === 'number' && value) {
+                                if (input.type === 'number' && value !== '') {
                                     value = parseFloat(value) || 0;
+                                } else if (input.type === 'checkbox') {
+                                    value = input.checked;
+                                } else {
+                                    value = value.trim();
                                 }
                                 
-                                formData[fieldName] = value;
+                                // Handle nested fields (e.g., "parent-child" becomes nested object)
+                                this.setNestedFieldValue(formData, fieldName, value);
                             }
                         });
                         
@@ -513,19 +562,110 @@
                             if (optionName && parentGroup) {
                                 const label = parentGroup.querySelector('.form-label');
                                 if (label) {
-                                    const fieldName = label.textContent.toLowerCase().replace(/\s+/g, '_');
+                                    const fieldName = this.sanitizeFieldName(label.textContent);
                                     formData[fieldName] = optionName.textContent.trim();
                                 }
                             }
                         });
                         
-                        console.log('Direct form data collection result:', formData);
+                        // Collect data from array containers
+                        const arrayContainers = container.querySelectorAll('.array-container, [class*="array"]');
+                        arrayContainers.forEach(arrayContainer => {
+                            const arrayFieldName = this.extractArrayFieldName(arrayContainer);
+                            if (arrayFieldName) {
+                                const arrayData = this.collectArrayData(arrayContainer);
+                                if (arrayData.length > 0) {
+                                    formData[arrayFieldName] = arrayData;
+                                }
+                            }
+                        });
+                        
+                        console.log('Enhanced direct form data collection result:', formData);
                         
                     } catch (error) {
-                        console.error('Error in direct form data collection:', error);
+                        console.error('Error in enhanced direct form data collection:', error);
                     }
                     
                     return formData;
+                },
+
+                // Helper method to parse field name from input ID
+                parseFieldNameFromInputId(inputId) {
+                    if (inputId.startsWith('field-')) {
+                        return inputId.replace('field-', '');
+                    }
+                    if (inputId.startsWith('nested-')) {
+                        return inputId.replace('nested-', '').replace(/-/g, '.');
+                    }
+                    // Handle array items: "arrayField-0-propName"
+                    const parts = inputId.split('-');
+                    if (parts.length >= 3 && /^\\d+$/.test(parts[1])) {
+                        return parts.slice(2).join('_');
+                    }
+                    return inputId;
+                },
+
+                // Helper method to set nested field values
+                setNestedFieldValue(obj, fieldPath, value) {
+                    const keys = fieldPath.split('.');
+                    let current = obj;
+                    
+                    for (let i = 0; i < keys.length - 1; i++) {
+                        const key = keys[i];
+                        if (!current[key] || typeof current[key] !== 'object') {
+                            current[key] = {};
+                        }
+                        current = current[key];
+                    }
+                    
+                    current[keys[keys.length - 1]] = value;
+                },
+
+                // Helper method to sanitize field names
+                sanitizeFieldName(labelText) {
+                    return labelText.toLowerCase()
+                        .replace(/[^\\w\\s]/g, '')
+                        .replace(/\\s+/g, '_')
+                        .trim();
+                },
+
+                // Helper method to extract array field name
+                extractArrayFieldName(container) {
+                    // Look for various indicators of the field name
+                    return container.getAttribute('data-field-name') || 
+                           container.getAttribute('data-array-field') ||
+                           container.id?.replace(/^array-/, '') ||
+                           this.sanitizeFieldName(container.closest('.form-group')?.querySelector('.form-label')?.textContent || 'items');
+                },
+
+                // Helper method to collect array data
+                collectArrayData(arrayContainer) {
+                    const arrayData = [];
+                    const items = arrayContainer.querySelectorAll('.array-item, [class*="item"]');
+                    
+                    items.forEach((item, index) => {
+                        const itemData = {};
+                        const itemInputs = item.querySelectorAll('input, select, textarea');
+                        
+                        itemInputs.forEach(input => {
+                            if (input.id && input.value.trim()) {
+                                const propName = this.parseFieldNameFromInputId(input.id);
+                                let value = input.value.trim();
+                                
+                                if (input.type === 'number' && value !== '') {
+                                    value = parseFloat(value) || 0;
+                                }
+                                
+                                itemData[propName] = value;
+                            }
+                        });
+                        
+                        if (Object.keys(itemData).length > 0) {
+                            arrayData.push(itemData);
+                        }
+                    });
+                    
+                    return arrayData;
                 },
                 
                 // Check if there's actual form data to determine if JSON button should show
@@ -534,15 +674,113 @@
                     return formData && Object.keys(formData).length > 0;
                 },
                 
+                // Reactive form data tracker (updated automatically)
+                formDataExists: false,
+                
+                // Initialize form data tracking
+                initFormDataTracking() {
+                    // Set up interval to check form data regularly
+                    setInterval(() => {
+                        this.updateFormDataStatus();
+                    }, 500); // Check every 500ms for responsive UI
+                    
+                    // Initial check
+                    this.updateFormDataStatus();
+                },
+                
+                // Update form data status
+                updateFormDataStatus() {
+                    try {
+                        const container = document.getElementById('dynamicFormsContainer');
+                        if (!container) {
+                            this.formDataExists = false;
+                            return;
+                        }
+                        
+                        let hasData = false;
+                        
+                        // Check for any inputs with values
+                        const inputs = container.querySelectorAll('input, select, textarea');
+                        for (let input of inputs) {
+                            if (input.type === 'checkbox' || input.type === 'radio') {
+                                if (input.checked) {
+                                    hasData = true;
+                                    break;
+                                }
+                            } else if (input.value && input.value.trim() !== '') {
+                                hasData = true;
+                                break;
+                            }
+                        }
+                        
+                        // Check for any selected option cards if no input data found
+                        if (!hasData) {
+                            const selectedOptions = container.querySelectorAll('.option-card.selected');
+                            hasData = selectedOptions.length > 0;
+                        }
+                        
+                        // Update reactive property
+                        this.formDataExists = hasData;
+                        
+                    } catch (error) {
+                        console.error('Error in updateFormDataStatus:', error);
+                        this.formDataExists = false;
+                    }
+                },
+                
+                // Simple reactive check for any form data (for button enabling)
+                hasAnyFormData() {
+                    // Return the reactive property that's updated automatically
+                    return this.formDataExists;
+                },
+                
+                // Download form data as JSON file
+                downloadFormDataJson() {
+                    // Force data collection before download
+                    this.forceDataSync();
+                    
+                    const formData = this.getFormDataForSchema();
+                    
+                    if (!formData || Object.keys(formData).length === 0) {
+                        alert('No form data available to download. Please fill out the form fields first.');
+                        return;
+                    }
+                    
+                    // Create download data using new JSON structure format
+                    const downloadData = this.createFormattedJsonStructure(formData);
+                    
+                    // Convert to JSON string
+                    const jsonString = JSON.stringify(downloadData, null, 2);
+                    
+                    // Create blob and download
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    
+                    // Generate filename using the compact identifier format
+                    const identifier = this.generateCompactIdentifier();
+                    link.download = `${identifier}.json`;
+                    
+                    // Trigger download
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    
+                    console.log('📥 Form data JSON downloaded (new format):', downloadData);
+                },
+                
                 // Enhanced evaluation with dynamic data
                 async runEvaluationWithDynamicData() {
                     this.isRunning = true;
                     this.hasResults = false;
                     
                     try {
-                        // Collect data from modular form system
+                        // Collect data from modular form system and log to console
                         const dynamicFormData = this.getFormDataForSchema();
                         console.log('Running evaluation with modular data:', dynamicFormData);
+                        
+                        // Automatically log form data JSON to console
+                        this.logFormDataToConsole();
                         
                         // Simulate processing time
                         await new Promise(resolve => setTimeout(resolve, 3000));

@@ -255,7 +255,8 @@ class DynamicWorkflowManager {
                         <label class="form-label" for="${fieldId}">${displayName}</label>
                         <input type="text" class="form-control" id="${fieldId}" 
                                placeholder="Enter ${displayName.toLowerCase()}"
-                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)">
+                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)"
+                               oninput="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)">
                     </div>
                 `;
             case 'number_input':
@@ -266,7 +267,8 @@ class DynamicWorkflowManager {
                         <input type="number" class="form-control" id="${fieldId}"
                                min="${numConf.min || ''}" max="${numConf.max || ''}" step="${numConf.step || 1}"
                                placeholder="Enter ${displayName.toLowerCase()}"
-                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', parseFloat(this.value))">
+                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', parseFloat(this.value) || 0)"
+                               oninput="window.dynamicWorkflow.updateFormData('${fieldName}', parseFloat(this.value) || 0)">
                     </div>
                 `;
             case 'array':
@@ -279,7 +281,8 @@ class DynamicWorkflowManager {
                         <label class="form-label" for="${fieldId}">${displayName}</label>
                         <input type="text" class="form-control" id="${fieldId}"
                                placeholder="Enter ${displayName.toLowerCase()}"
-                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)">
+                               onchange="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)"
+                               oninput="window.dynamicWorkflow.updateFormData('${fieldName}', this.value)">
                     </div>
                 `;
         }
@@ -513,39 +516,80 @@ class DynamicWorkflowManager {
         const formData = {};
         
         try {
-            // Collect data from text and number inputs
+            // Collect data from text and number inputs (including empty values)
             const inputs = document.querySelectorAll('#dynamicFormsContainer input, #dynamicFormsContainer select, #dynamicFormsContainer textarea');
             inputs.forEach(input => {
-                if (input.id && input.value) {
+                if (input.id) {
                     // Parse field name from input ID
                     const fieldName = this.parseFieldNameFromId(input.id);
                     if (fieldName) {
                         // Convert value based on input type
                         let value = input.value;
-                        if (input.type === 'number') {
+                        if (input.type === 'number' && value !== '') {
                             value = parseFloat(value) || 0;
                         }
                         
-                        // Handle nested field names (e.g., "parent-child" becomes nested object)
-                        this.setNestedValue(formData, fieldName, value);
+                        // Only set non-empty values or explicitly capture empty strings for required fields
+                        if (value !== '' || input.hasAttribute('required')) {
+                            // Handle nested field names (e.g., "parent-child" becomes nested object)
+                            this.setNestedValue(formData, fieldName, value);
+                        }
                     }
                 }
             });
             
             // Collect data from selected union options
-            const selectedOptions = document.querySelectorAll('.option-card.selected');
+            const selectedOptions = document.querySelectorAll('#dynamicFormsContainer .option-card.selected');
             selectedOptions.forEach(option => {
                 const parentContainer = option.closest('.form-group');
                 if (parentContainer) {
                     const label = parentContainer.querySelector('.form-label');
                     if (label) {
-                        const fieldName = label.textContent.toLowerCase().replace(/\s+/g, '_');
-                        formData[fieldName] = option.querySelector('.option-name')?.textContent || '';
+                        const fieldName = this.sanitizeFieldName(label.textContent);
+                        const optionName = option.querySelector('.option-name');
+                        if (optionName) {
+                            formData[fieldName] = optionName.textContent.trim();
+                        }
                     }
                 }
             });
             
-            console.log('DynamicWorkflowManager: Collected form data from DOM:', formData);
+            // Collect data from array items
+            const arrayContainers = document.querySelectorAll('#dynamicFormsContainer .array-container');
+            arrayContainers.forEach(container => {
+                const arrayFieldName = this.extractArrayFieldName(container);
+                if (arrayFieldName) {
+                    const items = container.querySelectorAll('.array-item');
+                    const arrayData = [];
+                    
+                    items.forEach((item, index) => {
+                        const itemData = {};
+                        const itemInputs = item.querySelectorAll('input, select, textarea');
+                        itemInputs.forEach(input => {
+                            if (input.id && input.value !== '') {
+                                const propName = this.extractArrayItemPropName(input.id);
+                                if (propName) {
+                                    let value = input.value;
+                                    if (input.type === 'number') {
+                                        value = parseFloat(value) || 0;
+                                    }
+                                    itemData[propName] = value;
+                                }
+                            }
+                        });
+                        
+                        if (Object.keys(itemData).length > 0) {
+                            arrayData.push(itemData);
+                        }
+                    });
+                    
+                    if (arrayData.length > 0) {
+                        formData[arrayFieldName] = arrayData;
+                    }
+                }
+            });
+            
+            console.log('DynamicWorkflowManager: Enhanced form data collection from DOM:', formData);
             
         } catch (error) {
             console.error('Error collecting form data from DOM:', error);
@@ -572,6 +616,17 @@ class DynamicWorkflowManager {
             return parts.join('.');
         }
         
+        // Handle array item patterns: "arrayField-0-propName" 
+        if (elementId.includes('-') && /\d+/.test(elementId)) {
+            const parts = elementId.split('-');
+            // If there's a number in the parts, it's likely an array item
+            const numberIndex = parts.findIndex(part => /^\d+$/.test(part));
+            if (numberIndex > 0) {
+                // Return the last part as property name for array items
+                return parts[parts.length - 1];
+            }
+        }
+        
         // For other patterns, try to extract meaningful field name
         const parts = elementId.split('-');
         if (parts.length >= 2) {
@@ -579,6 +634,55 @@ class DynamicWorkflowManager {
         }
         
         return elementId;
+    }
+
+    /**
+     * Sanitize field name from label text
+     */
+    sanitizeFieldName(labelText) {
+        return labelText.toLowerCase()
+            .replace(/[^\w\s]/g, '') // Remove special characters
+            .replace(/\s+/g, '_')     // Replace spaces with underscores
+            .trim();
+    }
+
+    /**
+     * Extract array field name from container element
+     */
+    extractArrayFieldName(container) {
+        // Look for data attributes or class names that indicate the field name
+        const fieldName = container.getAttribute('data-field-name') || 
+                         container.getAttribute('data-array-field') ||
+                         container.id?.replace('array-', '') ||
+                         null;
+        
+        if (!fieldName) {
+            // Try to extract from the nearest label
+            const label = container.closest('.form-group')?.querySelector('.form-label');
+            if (label) {
+                return this.sanitizeFieldName(label.textContent);
+            }
+        }
+        
+        return fieldName;
+    }
+
+    /**
+     * Extract property name from array item input ID
+     */
+    extractArrayItemPropName(inputId) {
+        // Pattern: "arrayField-itemIndex-propName"
+        const parts = inputId.split('-');
+        if (parts.length >= 3) {
+            // Find the numeric index and take everything after it
+            const numberIndex = parts.findIndex(part => /^\d+$/.test(part));
+            if (numberIndex >= 0 && numberIndex < parts.length - 1) {
+                return parts.slice(numberIndex + 1).join('_');
+            }
+        }
+        
+        // Fallback: take the last part
+        return parts[parts.length - 1];
     }
 
     /**
